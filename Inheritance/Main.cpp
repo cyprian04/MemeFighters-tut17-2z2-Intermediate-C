@@ -93,7 +93,7 @@ public:
 		:
 		MemeFighter(69, 7, 14, name)
 	{}
-	void SpecialMove(MemeFighter& other) const
+	void SpecialMove(MemeFighter& other) override
 	{
 		if (IsAlive() && other.IsAlive())
 		{
