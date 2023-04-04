@@ -183,18 +183,42 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 
 int main()
 {
-	MemeFrog f1( "Dat Boi" );
-	MemeStoner f2( "Good Guy Greg" );
+	MemeFrog f1("Dat Boi");
+	MemeStoner f2("Good Guy Greg");
+	MemeFrog f3("the WB Frog");
 
-	while( f1.IsAlive() && f2.IsAlive() )
+	MemeStoner g1("Chong");
+	MemeStoner g2(" Scumbag Steve");
+	MemeFrog g3("Pepe");
+
+	std::vector<MemeFighter*> t1 = { &f1, &f2, &f3 };
+	std::vector<MemeFighter*> t2 = { &g1, &g2, &g3 };
+
+	const auto alive_pred = [](MemeFighter* pf) {return pf->IsAlive(); };
+
+	while(std::any_of(t1.begin(), t1.end(), alive_pred) &&
+		  std::any_of(t2.begin(), t2.end(), alive_pred) )
 	{
-		// trade blows
-		Engage( f1,f2 );
-		// special moves
-		DoSpecials(f1, f2);
-		// end of turn maintainence
-		f1.Tick();
-		f2.Tick();
+		std::random_shuffle(t1.begin(), t1.end());
+		std::partition(t1.begin(), t1.end(), alive_pred);
+
+		std::random_shuffle(t2.begin(), t2.end());
+		std::partition(t2.begin(), t2.end(), alive_pred);
+
+		for (size_t i = 0; i < t1.size(); i++)
+		{
+			Engage(*t1[i], *t2[i]);
+			DoSpecials(*t1[i], *t2[i]);
+			std::cout << "------------------------------" << std::endl;
+		}
+		std::cout << "==================================" << std::endl;
+
+		for (size_t i = 0; i < t1.size(); i++)
+		{
+			t1[i]->Tick();
+			t2[i]->Tick();
+		}
+		std::cout << "==================================" << std::endl;
 
 		std::cout << "Press any key to continue...";
 		while( !_kbhit() );
@@ -202,13 +226,13 @@ int main()
 		std::cout << std::endl << std::endl;
 	}
 
-	if( f1.IsAlive() )
+	if( std::any_of(t1.begin(), t1.end(), alive_pred) )
 	{
-		std::cout << f1.GetName() << " is victorious!";
+		std::cout << "Team ONE is victorious!";
 	}
 	else
 	{
-		std::cout << f2.GetName() << " is victorious!";
+		std::cout << "Team TWO is victorious!";
 	}
 	while( !_kbhit() );
 	return 0;
