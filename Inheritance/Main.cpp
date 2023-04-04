@@ -20,6 +20,7 @@ private:
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 };
 
+// jeœli klasa ma funkcje pure virtual to zawsze jest klas¹ abstrakcyjn¹
 class MemeFighter
 {
 public:
