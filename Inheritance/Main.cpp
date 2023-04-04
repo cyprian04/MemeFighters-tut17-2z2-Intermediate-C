@@ -52,10 +52,9 @@ public:
 			hp += recovery;
 		}
 	}
-	virtual void SpecialMove(MemeFighter&)
-	{
-		std::cout << "You will never get this!" << std::endl;
-	}
+	virtual void SpecialMove(MemeFighter&) = 0; 
+	// pure virtua; function, mówi o tym ,¿e ka¿de dziecko musi mieæ nadpisanie tej funkcji 
+	//jeœli j¹ wywo³uje, bo ta nie bêdzie wykonana tylko odpowiada za odnoœnik to tych overriden
 protected:
 	MemeFighter(int hp, int speed, int power, std::string name)
 		:
