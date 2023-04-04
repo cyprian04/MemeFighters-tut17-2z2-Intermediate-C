@@ -2,7 +2,7 @@
 #include <string>
 #include <conio.h>
 #include <random>
-
+#include <algorithm>
 class Dice
 {
 public:
@@ -174,6 +174,9 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 		std::swap(p1, p2);
 	}
 	// execute attacks
+	// Zastosowanie Polimorfizmu, czyli np. przekazujemy ró¿ne obiekty child-class 
+	// podlegaj¹ce pod parent-class(base class) to tej samej funkcji virtualnej i uzyskujemy 
+	// ró¿ne rezultaty bo ta virtualna jest nadpisywana(nie dla ka¿dego child) przez funkcjê child-class
 	p1->SpecialMove(*p2);
 	p2->SpecialMove(*p1);
 }
