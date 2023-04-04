@@ -44,7 +44,7 @@ public:
 			ApplyDamageTo(other, power + d.Roll(2));
 		}
 	}
-	void Tick()
+	virtual void Tick()
 	{
 		if (IsAlive())
 		{
@@ -56,6 +56,9 @@ public:
 	virtual void SpecialMove(MemeFighter&) = 0; 
 	// pure virtua; function, mówi o tym ,¿e ka¿de dziecko musi mieæ nadpisanie tej funkcji 
 	//jeœli j¹ wywo³uje, bo ta nie bêdzie wykonana tylko odpowiada za odnoœnik to tych overriden
+	virtual ~MemeFighter()  = default;
+	// destruktor musi byæ virtualny aby wywo³a³ konstruktory obiektów klas typu child
+	// i te¿ musi byæ virtualny gdy tworzymy wektor oparty na wskaŸnikach do obiektów klas child
 protected:
 	MemeFighter(int hp, int speed, int power, std::string name)
 		:
@@ -93,6 +96,10 @@ public:
 		:
 		MemeFighter(69, 7, 14, name)
 	{}
+	~MemeFrog() 
+	{
+		std::cout << "Destroying MemeFrog" << name << std::endl;
+	}
 	void SpecialMove(MemeFighter& other) override
 	{
 		if (IsAlive() && other.IsAlive())
@@ -108,7 +115,7 @@ public:
 			}
 		}
 	}
-	void Tick()
+	void Tick() override
 	{
 		if (IsAlive())
 		{
@@ -145,7 +152,10 @@ public:
 			}
 		}
 	}
-
+	~MemeStoner()
+	{
+		std::cout << "Destroying MemeStoner" << name << std::endl;
+	}
 };
 
 void Engage( MemeFighter& f1,MemeFighter& f2 )
@@ -183,16 +193,21 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 
 int main()
 {
-	MemeFrog f1("Dat Boi");
-	MemeStoner f2("Good Guy Greg");
-	MemeFrog f3("the WB Frog");
-
 	MemeStoner g1("Chong");
 	MemeStoner g2(" Scumbag Steve");
 	MemeFrog g3("Pepe");
 
-	std::vector<MemeFighter*> t1 = { &f1, &f2, &f3 };
-	std::vector<MemeFighter*> t2 = { &g1, &g2, &g3 };
+	std::vector<MemeFighter*> t1 = {
+		new MemeFrog ("Dat Boi"),
+		new	MemeStoner ("Good Guy Greg"),
+		new MemeFrog ("the WB Frog")
+	};
+
+	std::vector<MemeFighter*> t2 = {
+		new	MemeStoner ("Chong"),
+		new	MemeStoner (" Scumbag Steve"),
+		new	MemeFrog ("Pepe")
+	};
 
 	const auto alive_pred = [](MemeFighter* pf) {return pf->IsAlive(); };
 
@@ -234,6 +249,13 @@ int main()
 	{
 		std::cout << "Team TWO is victorious!";
 	}
-	while( !_kbhit() );
+
+	for (size_t i = 0; i < t1.size(); i++)
+	{
+		delete t1[i];
+		delete t2[i];
+	}
+
+	while (!_kbhit());
 	return 0;
 }
