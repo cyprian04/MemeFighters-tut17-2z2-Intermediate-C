@@ -20,6 +20,130 @@ private:
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 };
 
+class MemeFighter
+{
+public:
+	const std::string& GetName() const
+	{
+		return name;
+	}
+	bool IsAlive() const
+	{
+		return hp > 0;
+	}
+	int GetInitiative()
+	{
+		return speed + d.Roll(2);
+	}
+	void Punch(MemeFighter& other) const
+	{
+		if (IsAlive() && other.IsAlive())
+		{
+			std::cout << name << " punches " << other.GetName()<<"!"<< std::endl;
+			ApplyDamageTo(other, power + d.Roll(2));
+		}
+	}
+	void Tick()
+	{
+		if (IsAlive())
+		{
+			const int recovery = Roll();
+			std::cout <<name<<" recovers "<< recovery <<" hp" << std::endl;
+			hp += recovery;
+		}
+	}
+protected:
+	MemeFighter(int hp, int speed, int power, std::string name)
+		:
+		hp(hp),
+		speed(speed),
+		power(power),
+		name(name)
+	{}
+	void ApplyDamageTo(MemeFighter& target, int damage) const
+	{
+		target.hp -= damage;
+		std::cout << target.name<<" takes"<< damage << "damage" << std::endl;
+		if (!target.IsAlive())
+		{
+			std::cout<<"As the life leaves "<< target.name <<"'s body does the poop" << std::endl;
+		}
+	}
+	int Roll(int nDice = 1)const
+	{
+		return d.Roll(nDice);
+	}
+protected:
+	int hp;
+	int speed;
+	int power;
+	std::string name;
+private:
+	mutable Dice d;
+};
+
+class MemeFrog : public MemeFighter
+{
+public:
+	MemeFrog(const std::string& name)
+		:
+		MemeFighter(69, 7, 14, name)
+	{}
+	void SpecialMove(MemeFighter& other) const
+	{
+		if (IsAlive() && other.IsAlive())
+		{
+			if (Roll() > 4)
+			{
+				std::cout << GetName() << " attacks " << other.GetName() << "with a rainbow beam"<<std::endl;
+				ApplyDamageTo(other, Roll(3) + 20);
+			}
+			else
+			{
+				std::cout << GetName() << " falls from his unicycle!" << std::endl;
+			}
+		}
+	}
+	void Tick()
+	{
+		if (IsAlive())
+		{
+			std::cout << GetName() << " is hurt by the bad AIDS" << std::endl;
+			ApplyDamageTo(*this, Roll());
+			MemeFighter::Tick();
+		}
+	}
+};
+
+class MemeStoner : public MemeFighter
+{
+public:
+	MemeStoner(const std::string& name)
+		:
+		MemeFighter(80, 4, 10, name)
+	{}
+	void SpecialMove()
+	{
+		if (IsAlive())
+		{
+			if (Roll() > 3)
+			{
+				std::cout << GetName() << " smokes the dank sitcky inky, becoming" << " Super " << GetName() << std::endl;
+				name = "Super" + name;
+				speed += 3;
+				power = (power * 69) / 42;
+				hp += 10;
+			}
+			
+			else
+			{
+				std::cout << GetName() << " spaces out " << std::endl;
+			}
+		}
+	}
+
+};
+
 void Engage( MemeFighter& f1,MemeFighter& f2 )
 {
 	// pointers for sorting purposes
