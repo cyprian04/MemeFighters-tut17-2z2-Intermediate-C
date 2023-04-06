@@ -3,24 +3,53 @@
 #include <conio.h>
 #include <random>
 #include <algorithm>
+
 class Dice
 {
 public:
-	int Roll( int nDice )
+	int Roll(int nDice)
 	{
 		int total = 0;
-		for( int n = 0; n < nDice; n++ )
+		for (int n = 0; n < nDice; n++)
 		{
-			total += d6( rng );
+			total += d6(rng);
 		}
 		return total;
 	}
 private:
-	std::uniform_int_distribution<int> d6 = std::uniform_int_distribution<int>( 1,6 );
-	std::mt19937 rng = std::mt19937( std::random_device{}() );
+	std::uniform_int_distribution<int> d6 = std::uniform_int_distribution<int>(1, 6);
+	std::mt19937 rng = std::mt19937(std::random_device{}());
 };
 
-// jeœli klasa ma funkcje pure virtual to zawsze jest klas¹ abstrakcyjn¹
+struct Attributes
+{
+	int hp;
+	int speed;
+	int power;
+};
+
+class Weapon
+{
+public:
+	Weapon(const std::string& name, int rank)
+		:
+		name(name),
+		rank(rank)
+	{}
+	const std::string& GetName() const
+	{
+		return name;
+	}
+	int GetRank() const
+	{
+		return rank;
+	}
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const = 0;
+private:
+	std::string name;
+	int rank;
+};
+
 class MemeFighter
 {
 public:
@@ -30,18 +59,19 @@ public:
 	}
 	bool IsAlive() const
 	{
-		return hp > 0;
+		return attr.hp > 0;
 	}
-	int GetInitiative()
+	int GetInitiative() const
 	{
-		return speed + d.Roll(2);
+		return attr.speed + Roll(2);
 	}
-	void Punch(MemeFighter& other) const
+	void Attack(MemeFighter& other) const
 	{
 		if (IsAlive() && other.IsAlive())
 		{
-			std::cout << name << " punches " << other.GetName()<<"!"<< std::endl;
-			ApplyDamageTo(other, power + d.Roll(2));
+			std::cout << name << " attacks " << other.GetName() << " with his " << pWeapon->GetName()
+				<< "!" << std::endl;
+			ApplyDamageTo(other, pWeapon->CalculateDamage(attr, d));
 		}
 	}
 	virtual void Tick()
@@ -49,69 +79,122 @@ public:
 		if (IsAlive())
 		{
 			const int recovery = Roll();
-			std::cout <<name<<" recovers "<< recovery <<" hp" << std::endl;
-			hp += recovery;
+			std::cout << name << " recovers " << recovery << " HP." << std::endl;
+			attr.hp += recovery;
 		}
 	}
-	virtual void SpecialMove(MemeFighter&) = 0; 
-	// pure virtua; function, mówi o tym ,¿e ka¿de dziecko musi mieæ nadpisanie tej funkcji 
-	//jeœli j¹ wywo³uje, bo ta nie bêdzie wykonana tylko odpowiada za odnoœnik to tych overriden
-	virtual ~MemeFighter()  = default;
-	// destruktor musi byæ virtualny aby wywo³a³ konstruktory obiektów klas typu child
-	// i te¿ musi byæ virtualny gdy tworzymy wektor oparty na wskaŸnikach do obiektów klas child
+	virtual void SpecialMove(MemeFighter&) = 0;
+	virtual ~MemeFighter()
+	{
+		delete pWeapon;
+	}
+	void GiveWeapon(Weapon* pNewWeapon)
+	{
+		delete pWeapon;
+		pWeapon = pNewWeapon;
+	}
+	Weapon* PilferWeapon()
+	{
+		auto pWep = pWeapon;
+		pWeapon = nullptr;
+		return pWep;
+	}
+	bool HasWeapon() const
+	{
+		return pWeapon != nullptr;
+	}
+	const Weapon& GetWeapon() const
+	{
+		return *pWeapon;
+	}
 protected:
-	MemeFighter(int hp, int speed, int power, std::string name)
+	MemeFighter(const std::string& name, int hp, int speed, int power, Weapon* pWeapon = nullptr)
 		:
-		hp(hp),
-		speed(speed),
-		power(power),
-		name(name)
-	{}
+		name(name),
+		attr({ hp,speed,power }),
+		pWeapon(pWeapon)
+	{
+		std::cout << name << " enters the ring!" << std::endl;
+	}
 	void ApplyDamageTo(MemeFighter& target, int damage) const
 	{
-		target.hp -= damage;
-		std::cout << target.name<<" takes"<< damage << "damage" << std::endl;
+		target.attr.hp -= damage;
+		std::cout << target.name << " takes " << damage << " damage." << std::endl;
 		if (!target.IsAlive())
 		{
-			std::cout<<"As the life leaves "<< target.name <<"'s body does the poop" << std::endl;
+			std::cout << "As the life leaves " << target.name << "'s body, so does the poop." << std::endl;
 		}
 	}
-	int Roll(int nDice = 1)const
+	int Roll(int nDice = 1) const
 	{
 		return d.Roll(nDice);
 	}
 protected:
-	int hp;
-	int speed;
-	int power;
+	Attributes attr;
 	std::string name;
 private:
+	Weapon* pWeapon = nullptr;
 	mutable Dice d;
+};
+
+class Fists : public Weapon
+{
+public:
+	Fists()
+		:
+		Weapon("fists", 0)
+	{}
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const
+	{
+		return attr.power + d.Roll(2);
+	}
+};
+
+class Knife : public Weapon
+{
+public:
+	Knife()
+		:
+		Weapon("knife", 2)
+	{}
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const
+	{
+		return attr.speed * 3 + d.Roll(3);
+	}
+};
+
+class Bat : public Weapon
+{
+public:
+	Bat()
+		:
+		Weapon("bat", 1)
+	{}
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const
+	{
+		return attr.power * 2 + d.Roll(1);
+	}
 };
 
 class MemeFrog : public MemeFighter
 {
 public:
-	MemeFrog(const std::string& name)
+	MemeFrog(const std::string& name, Weapon* pWeapon = nullptr)
 		:
-		MemeFighter(69, 7, 14, name)
+		MemeFighter(name, 69, 7, 14, pWeapon)
 	{}
-	~MemeFrog() 
-	{
-		std::cout << "Destroying MemeFrog" << name << std::endl;
-	}
 	void SpecialMove(MemeFighter& other) override
 	{
 		if (IsAlive() && other.IsAlive())
 		{
 			if (Roll() > 4)
 			{
-				std::cout << GetName() << " attacks " << other.GetName() << "with a rainbow beam"<<std::endl;
+				std::cout << GetName() << " attacks " << other.GetName() << " with a rainbow beam!" << std::endl;
 				ApplyDamageTo(other, Roll(3) + 20);
 			}
 			else
 			{
-				std::cout << GetName() << " falls from his unicycle!" << std::endl;
+				std::cout << GetName() << " falls off his unicycle." << std::endl;
 			}
 		}
 	}
@@ -119,58 +202,76 @@ public:
 	{
 		if (IsAlive())
 		{
-			std::cout << GetName() << " is hurt by the bad AIDS" << std::endl;
+			std::cout << GetName() << " is hurt by the bad AIDS!" << std::endl;
 			ApplyDamageTo(*this, Roll());
 			MemeFighter::Tick();
 		}
+	}
+	~MemeFrog()
+	{
+		std::cout << "Destroying MemeFrog '" << name << "'!" << std::endl;
 	}
 };
 
 class MemeStoner : public MemeFighter
 {
 public:
-	MemeStoner(const std::string& name)
+	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
 		:
-		MemeFighter(80, 4, 10, name)
+		MemeFighter(name, 80, 4, 10, pWeapon)
 	{}
-	void SpecialMove(MemeFighter&) override 
+	void SpecialMove(MemeFighter&) override
 	{
 		if (IsAlive())
 		{
 			if (Roll() > 3)
 			{
-				std::cout << GetName() << " smokes the dank sitcky inky, becoming" << " Super " << GetName() << std::endl;
-				name = "Super" + name;
-				speed += 3;
-				power = (power * 69) / 42;
-				hp += 10;
+				std::cout << GetName() << " smokes the dank sticky icky, becoming " << "Super " << GetName() << std::endl;
+				name = "Super " + name;
+				attr.speed += 3;
+				attr.power = (attr.power * 69) / 42;
+				attr.hp += 10;
 			}
-			
 			else
 			{
-				std::cout << GetName() << " spaces out " << std::endl;
+				std::cout << GetName() << " spaces out." << std::endl;
 			}
 		}
 	}
 	~MemeStoner()
 	{
-		std::cout << "Destroying MemeStoner" << name << std::endl;
+		std::cout << "Destroying MemeStoner '" << name << "'!" << std::endl;
 	}
 };
 
-void Engage( MemeFighter& f1,MemeFighter& f2 )
+void TakeWeaponIfDead(MemeFighter& taker, MemeFighter& giver)
+{
+	if (taker.IsAlive() && !giver.IsAlive() && giver.HasWeapon())
+	{
+		if (giver.GetWeapon().GetRank() > taker.GetWeapon().GetRank())
+		{
+			std::cout << taker.GetName() << " takes the " << giver.GetWeapon().GetName()
+				<< " from " << giver.GetName() << "'s still-cooling corpse." << std::endl;
+			taker.GiveWeapon(giver.PilferWeapon());
+		}
+	}
+}
+
+void Engage(MemeFighter& f1, MemeFighter& f2)
 {
 	// pointers for sorting purposes
 	auto* p1 = &f1;
 	auto* p2 = &f2;
 	// determine attack order
-	if( p1->GetInitiative() < p2->GetInitiative() )
+	if (p1->GetInitiative() < p2->GetInitiative())
 	{
-		std::swap( p1,p2 );
+		std::swap(p1, p2);
 	}
 	// execute attacks
-	p1->Punch( *p2 );
-	p2->Punch( *p1 );
+	p1->Attack(*p2);
+	TakeWeaponIfDead(*p1, *p2);
+	p2->Attack(*p1);
+	TakeWeaponIfDead(*p2, *p1);
 }
 
 void DoSpecials(MemeFighter& f1, MemeFighter& f2)
@@ -184,39 +285,32 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 		std::swap(p1, p2);
 	}
 	// execute attacks
-	// Zastosowanie Polimorfizmu, czyli np. przekazujemy ró¿ne obiekty child-class 
-	// podlegaj¹ce pod parent-class(base class) to tej samej funkcji virtualnej i uzyskujemy 
-	// ró¿ne rezultaty bo ta virtualna jest nadpisywana(nie dla ka¿dego child) przez funkcjê child-class
 	p1->SpecialMove(*p2);
+	TakeWeaponIfDead(*p1, *p2);
 	p2->SpecialMove(*p1);
+	TakeWeaponIfDead(*p2, *p1);
 }
 
 int main()
 {
-	MemeStoner g1("Chong");
-	MemeStoner g2(" Scumbag Steve");
-	MemeFrog g3("Pepe");
-
 	std::vector<MemeFighter*> t1 = {
-		new MemeFrog ("Dat Boi"),
-		new	MemeStoner ("Good Guy Greg"),
-		new MemeFrog ("the WB Frog")
+		new MemeFrog("Dat Boi",new Fists),
+		new MemeStoner("Good Guy Greg",new Bat),
+		new MemeFrog("the WB Frog",new Knife)
 	};
-
 	std::vector<MemeFighter*> t2 = {
-		new	MemeStoner ("Chong"),
-		new	MemeStoner (" Scumbag Steve"),
-		new	MemeFrog ("Pepe")
+		new MemeStoner("Chong",new Fists),
+		new MemeStoner("Scumbag Steve",new Bat),
+		new MemeFrog("Pepe",new Knife)
 	};
 
-	const auto alive_pred = [](MemeFighter* pf) {return pf->IsAlive(); };
-
-	while(std::any_of(t1.begin(), t1.end(), alive_pred) &&
-		  std::any_of(t2.begin(), t2.end(), alive_pred) )
+	const auto alive_pred = [](MemeFighter* pf) { return pf->IsAlive(); };
+	while (
+		std::any_of(t1.begin(), t1.end(), alive_pred) &&
+		std::any_of(t2.begin(), t2.end(), alive_pred))
 	{
 		std::random_shuffle(t1.begin(), t1.end());
 		std::partition(t1.begin(), t1.end(), alive_pred);
-
 		std::random_shuffle(t2.begin(), t2.end());
 		std::partition(t2.begin(), t2.end(), alive_pred);
 
@@ -224,30 +318,30 @@ int main()
 		{
 			Engage(*t1[i], *t2[i]);
 			DoSpecials(*t1[i], *t2[i]);
-			std::cout << "------------------------------" << std::endl;
+			std::cout << "------------------------------------" << std::endl;
 		}
-		std::cout << "==================================" << std::endl;
+		std::cout << "=====================================" << std::endl;
 
 		for (size_t i = 0; i < t1.size(); i++)
 		{
 			t1[i]->Tick();
 			t2[i]->Tick();
 		}
-		std::cout << "==================================" << std::endl;
+		std::cout << "=====================================" << std::endl;
 
 		std::cout << "Press any key to continue...";
-		while( !_kbhit() );
+		while (!_kbhit());
 		_getch();
 		std::cout << std::endl << std::endl;
 	}
 
-	if( std::any_of(t1.begin(), t1.end(), alive_pred) )
+	if (std::any_of(t1.begin(), t1.end(), alive_pred))
 	{
-		std::cout << "Team ONE is victorious!";
+		std::cout << "Team ONE is victorious!" << std::endl;
 	}
 	else
 	{
-		std::cout << "Team TWO is victorious!";
+		std::cout << "Team TWO is victorious!" << std::endl;
 	}
 
 	for (size_t i = 0; i < t1.size(); i++)
