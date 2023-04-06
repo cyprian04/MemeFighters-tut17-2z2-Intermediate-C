@@ -3,6 +3,7 @@
 #include <conio.h>
 #include <random>
 #include <algorithm>
+#include <typeinfo>
 
 class Dice
 {
@@ -207,40 +208,13 @@ public:
 			MemeFighter::Tick();
 		}
 	}
+	void Foo()
+	{
+		std::cout << "Non-virtual MemeFrog function call." << std::endl;
+	}
 	~MemeFrog() override
 	{
 		std::cout << "Destroying MemeFrog '" << name << "'!" << std::endl;
-	}
-};
-
-class MemeStoner : public MemeFighter
-{
-public:
-	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
-		:
-		MemeFighter(name, 80, 4, 10, pWeapon)
-	{}
-	void SpecialMove(MemeFighter&) override
-	{
-		if (IsAlive())
-		{
-			if (Roll() > 3)
-			{
-				std::cout << GetName() << " smokes the dank sticky icky, becoming " << "Super " << GetName() << std::endl;
-				name = "Super " + name;
-				attr.speed += 3;
-				attr.power = (attr.power * 69) / 42;
-				attr.hp += 10;
-			}
-			else
-			{
-				std::cout << GetName() << " spaces out." << std::endl;
-			}
-		}
-	}
-	~MemeStoner() override
-	{
-		std::cout << "Destroying MemeStoner '" << name << "'!" << std::endl;
 	}
 };
 
@@ -269,6 +243,49 @@ public:
 	~MemeCat() override
 	{
 		std::cout << "Destroying MemeCat '" << name << "'!" << std::endl;
+	}
+};
+
+class MemeStoner : public MemeFighter
+{
+public:
+	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
+		:
+		MemeFighter(name, 80, 4, 10, pWeapon)
+	{}
+	void SpecialMove(MemeFighter& other) override
+	{
+		if (IsAlive())
+		{
+			if (Roll() > 3)
+			{
+				if (MemeFrog* pFrog = dynamic_cast<MemeFrog*>(&other)) // Zastosowanie Dynami Cast do porównania dwóch typów, ¿eby tak móc musi byæ funckja virtualna  w klasie typu parent
+				{
+					std::cout << GetName() + " says: 'Oh sweet dude, it's a cool little froggie bro.'\n";
+				}
+				else if (typeid(MemeStoner) == typeid(other)) // porównanie z biblioteki <typeinfo>, bardziej przejrzyste ni¿ zapis dynamic_cast, czasem szybsze
+				{
+					std::cout << GetName() + " says: 'Duuuuuude.'\n";
+				}
+				else if (typeid(MemeCat) == typeid(other))
+				{
+					std::cout << GetName() + " says: 'Hey kitty bro, can I pet you?'\n";
+				}
+				std::cout << GetName() << " smokes the dank sticky icky, becoming " << "Super " << GetName() << std::endl;
+				name = "Super " + name;
+				attr.speed += 3;
+				attr.power = (attr.power * 69) / 42;
+				attr.hp += 10;
+			}
+			else
+			{
+				std::cout << GetName() << " spaces out." << std::endl;
+			}
+		}
+	}
+	~MemeStoner() override
+	{
+		std::cout << "Destroying MemeStoner '" << name << "'!" << std::endl;
 	}
 };
 
@@ -320,6 +337,15 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 	TakeWeaponIfDead(*p2, *p1);
 }
 
+bool AreSameType(MemeFighter& f1, MemeFighter& f2)
+{
+	if (typeid(f1) == typeid(f2))
+	{
+		return true;
+	}
+	return false;
+}
+
 int main()
 {
 	std::vector<MemeFighter*> t1 = {
@@ -332,6 +358,10 @@ int main()
 		new MemeStoner("Scumbag Steve",new Bat),
 		new MemeFrog("Pepe",new Knife)
 	};
+
+	std::cout << std::boolalpha << AreSameType(*t1[0], *t2[2]) << std::endl;
+	std::cout << std::boolalpha << AreSameType(*t1[0], *t2[0]) << std::endl;
+	std::cout << typeid(*t2[1]).name() << std::endl;
 
 	const auto alive_pred = [](MemeFighter* pf) { return pf->IsAlive(); };
 	while (
