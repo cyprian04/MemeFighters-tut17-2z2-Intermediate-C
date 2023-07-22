@@ -86,6 +86,7 @@ public:
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0;
+	virtual ~MemeFighter() = default; // even though u_ptr lets us default our MemeFighter dtor, we still need to mark it as virtual!
 	void GiveWeapon(std::unique_ptr<Weapon> pNewWeapon)
 	{
 		pWeapon = std::move(pNewWeapon);
@@ -206,7 +207,7 @@ public:
 	{
 		std::cout << "Non-virtual MemeFrog function call." << std::endl;
 	}
-	~MemeFrog()
+	~MemeFrog()override
 	{
 		std::cout << "Destroying MemeFrog '" << name << "'!" << std::endl;
 	}
@@ -234,7 +235,7 @@ public:
 			}
 		}
 	}
-	~MemeCat()
+	~MemeCat() override
 	{
 		std::cout << "Destroying MemeCat '" << name << "'!" << std::endl;
 	}
@@ -277,7 +278,7 @@ public:
 			}
 		}
 	}
-	~MemeStoner() 
+	~MemeStoner() override
 	{
 		std::cout << "Destroying MemeStoner '" << name << "'!" << std::endl;
 	}
