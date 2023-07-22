@@ -4,6 +4,7 @@
 #include <random>
 #include <algorithm>
 #include <typeinfo>
+#include <memory>
 
 class Dice
 {
@@ -85,20 +86,13 @@ public:
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0;
-	virtual ~MemeFighter()
+	void GiveWeapon(std::unique_ptr<Weapon> pNewWeapon)
 	{
-		delete pWeapon;
+		pWeapon = std::move(pNewWeapon);
 	}
-	void GiveWeapon(Weapon* pNewWeapon)
+	std::unique_ptr<Weapon> PilferWeapon()
 	{
-		delete pWeapon;
-		pWeapon = pNewWeapon;
-	}
-	Weapon* PilferWeapon()
-	{
-		auto pWep = pWeapon;
-		pWeapon = nullptr;
-		return pWep;
+		return std::move(pWeapon);
 	}
 	bool HasWeapon() const
 	{
@@ -109,11 +103,11 @@ public:
 		return *pWeapon;
 	}
 protected:
-	MemeFighter(const std::string& name, int hp, int speed, int power, Weapon* pWeapon = nullptr)
+	MemeFighter(const std::string& name, int hp, int speed, int power, std::unique_ptr<Weapon> pWeapon)
 		:
 		name(name),
 		attr({ hp,speed,power }),
-		pWeapon(pWeapon)
+		pWeapon(std::move(pWeapon)) // przy ka¿dym inicjalizowaniu dajemy std::move(...) poniewa¿ przenosimy ownership u_ptr, a nie mo¿na ich kopiowaæ. Dlatego move semantics jest tak wa¿ne przy u_ptr
 	{
 		std::cout << name << " enters the ring!" << std::endl;
 	}
@@ -134,7 +128,7 @@ protected:
 	Attributes attr;
 	std::string name;
 private:
-	Weapon* pWeapon = nullptr;
+	std::unique_ptr<Weapon> pWeapon; // tworz¹æ u_ptr nie musimy go deklarowaæ na nullptr;
 	mutable Dice d;
 };
 
@@ -180,9 +174,9 @@ public:
 class MemeFrog : public MemeFighter
 {
 public:
-	MemeFrog(const std::string& name, Weapon* pWeapon = nullptr)
+	MemeFrog(const std::string& name, std::unique_ptr<Weapon> pWeapon)
 		:
-		MemeFighter(name, 69, 7, 14, pWeapon)
+		MemeFighter(name, 69, 7, 14, std::move(pWeapon))
 	{}
 	void SpecialMove(MemeFighter& other) override
 	{
@@ -212,7 +206,7 @@ public:
 	{
 		std::cout << "Non-virtual MemeFrog function call." << std::endl;
 	}
-	~MemeFrog() override
+	~MemeFrog()
 	{
 		std::cout << "Destroying MemeFrog '" << name << "'!" << std::endl;
 	}
@@ -221,9 +215,9 @@ public:
 class MemeCat : public MemeFighter
 {
 public:
-	MemeCat(const std::string& name, Weapon* pWeapon = nullptr)
+	MemeCat(const std::string& name, std::unique_ptr<Weapon> pWeapon)
 		:
-		MemeFighter(name, 65, 9, 14, pWeapon)
+		MemeFighter(name, 65, 9, 14, std::move(pWeapon))
 	{}
 	void SpecialMove(MemeFighter&) override
 	{
@@ -240,7 +234,7 @@ public:
 			}
 		}
 	}
-	~MemeCat() override
+	~MemeCat()
 	{
 		std::cout << "Destroying MemeCat '" << name << "'!" << std::endl;
 	}
@@ -249,9 +243,9 @@ public:
 class MemeStoner : public MemeFighter
 {
 public:
-	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
+	MemeStoner(const std::string& name, std::unique_ptr<Weapon> pWeapon)
 		:
-		MemeFighter(name, 80, 4, 10, pWeapon)
+		MemeFighter(name, 80, 4, 10, std::move(pWeapon))
 	{}
 	void SpecialMove(MemeFighter& other) override
 	{
@@ -283,7 +277,7 @@ public:
 			}
 		}
 	}
-	~MemeStoner() override
+	~MemeStoner() 
 	{
 		std::cout << "Destroying MemeStoner '" << name << "'!" << std::endl;
 	}
@@ -348,22 +342,22 @@ bool AreSameType(MemeFighter& f1, MemeFighter& f2)
 
 int main()
 {
-	std::vector<MemeFighter*> t1 = {
-		new MemeFrog("Dat Boi",new Fists),
-		new MemeStoner("Good Guy Greg",new Bat),
-		new MemeCat("Haz Cheeseburger",new Knife),
-	};
-	std::vector<MemeFighter*> t2 = {
-		new MemeCat("NEDM",new Fists),
-		new MemeStoner("Scumbag Steve",new Bat),
-		new MemeFrog("Pepe",new Knife)
-	};
+	// nie mo¿emy u¿yæ {} nawiasów jak wczeœniej. Przy tworzeniu vectora u_ptr, musimy zastosowaæ push_back etc.(Tak wymaga kompilator)
+	std::vector<std::unique_ptr<MemeFighter>> t1; 
+	t1.push_back(std::make_unique<MemeFrog>("Dat Boi", std::make_unique<Fists>() ));
+	t1.push_back(std::make_unique<MemeStoner>("Good Guy Greg", std::make_unique<Bat>() ));
+	t1.push_back(std::make_unique<MemeCat>("Haz Cheeseburger", std::make_unique<Knife>() ));
+	
+	std::vector<std::unique_ptr<MemeFighter>> t2; 
+	t2.push_back(std::make_unique<MemeCat>("NEDM", std::make_unique<Fists>() ));
+	t2.push_back(std::make_unique<MemeStoner>("Scumbag Steve", std::make_unique<Bat>() ));
+	t2.push_back(std::make_unique<MemeFrog>("Pepe", std::make_unique<Knife>() ));
 
 	std::cout << std::boolalpha << AreSameType(*t1[0], *t2[2]) << std::endl;
 	std::cout << std::boolalpha << AreSameType(*t1[0], *t2[0]) << std::endl;
 	std::cout << typeid(*t2[1]).name() << std::endl;
 
-	const auto alive_pred = [](MemeFighter* pf) { return pf->IsAlive(); };
+	const auto alive_pred = [](const std::unique_ptr<MemeFighter>& pf) { return pf->IsAlive(); }; //zapis przekazania do lambdy(Potem chilli zmieni)
 	while (
 		std::any_of(t1.begin(), t1.end(), alive_pred) &&
 		std::any_of(t2.begin(), t2.end(), alive_pred))
@@ -403,11 +397,7 @@ int main()
 		std::cout << "Team TWO is victorious!" << std::endl;
 	}
 
-	for (size_t i = 0; i < t1.size(); i++)
-	{
-		delete t1[i];
-		delete t2[i];
-	}
+	// nie musimy ju¿ nic usuwaæ bo u_ptr zrobi¹ to za nas 
 
 	while (!_kbhit());
 	return 0;
